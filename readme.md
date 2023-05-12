@@ -1401,7 +1401,7 @@ const AuthContext = React.createContext({
 
 export default AuthContext;
 ```
-Now to use this context, we have to provide it and also consume it. We provide it where the data is needed by wrapping it around the components that need it or conatains a component that needs and consume it where we are using it. From our [useEffect example](#effect--side-effect) for the login page:
+Now to use this context, we have to provide it and also consume it. We provide it where the data is needed by wrapping it around the components that needs it or conatains a component that needs it and consume it where we are using it. If we need the data in our entire application, we can just wrap the application with `AuthContext` because any component that's not wrapped won't be able to listen when the data is provided and also consume. From our [useEffect example](#effect--side-effect) for the login page:
 ```jsx
 import React from 'react';
 
@@ -1441,7 +1441,7 @@ We are passing the `isAuthenticated` prop to another component which then pass i
 
 ```jsx
 import React from 'react';
-import AuthContext from './store/auth
+import AuthContext from './store/auth;
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1449,18 +1449,103 @@ function App() {
   // .... some other code
   return (
     <React.Fragment>
-
-      <MainHeader isAuthenticated={isLoggedIn} onLogout={logoutHandler} />
-      <main>
-        {!isLoggedIn && <Login onLogin={loginHandler} />}
-        {isLoggedIn && <Home onLogout={logoutHandler} />}
-      </main>
+      <AuthContext.Provider>
+        <MainHeader isAuthenticated={isLoggedIn} onLogout={logoutHandler} />
+        <main>
+          {!isLoggedIn && <Login onLogin={loginHandler} />}
+          {isLoggedIn && <Home onLogout={logoutHandler} />}
+        </main>
+      </AuthContext.Provider>
     </React.Fragment>
   );
 }
 
 export default App;
 ```
+Now that this is done, we don't need `React.Fragment` since we already have `AuthContext.Provider` as a wrapping component.
+```jsx
+return (
+  <AuthContext.Provider>
+    <MainHeader isAuthenticated={isLoggedIn} onLogout={logoutHandler} />
+    <main>
+      {!isLoggedIn && <Login onLogin={loginHandler} />}
+      {isLoggedIn && <Home onLogout={logoutHandler} />}
+    </main>
+  </AuthContext.Provider>
+)
+```
+The next step is listening, we can listen in two ways, by using `AuthContext.Consumer` or by using a React Hoook. Using `AuthContext.Consumer` our Navication.js, which looked like this:
+```jsx
+import React from 'react';
+
+import classes from './Navigation.module.css';
+
+const Navigation = (props) => {
+  return (
+    <nav className={classes.nav}>
+      <ul>
+        {props.isLoggedIn && (
+          <li>
+            <a href="/">Users</a>
+          </li>
+        )}
+        {props.isLoggedIn && (
+          <li>
+            <a href="/">Admin</a>
+          </li>
+        )}
+        {props.isLoggedIn && (
+          <li>
+            <button onClick={props.onLogout}>Logout</button>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+};
+
+export default Navigation;
+
+```
+Would now look like this:
+```jsx
+import React from 'react';
+import AuthContext from '../store/auth-context';
+
+import classes from './Navigation.module.css';
+
+const Navigation = (props) => {
+  return (
+    <AuthContext.Consumer>
+      {(ctx)=>{
+        return (<nav className={classes.nav}>
+          <ul>
+            {ctx.isLoggedIn && (
+              <li>
+                <a href="/">Users</a>
+              </li>
+            )}
+            {ctx.isLoggedIn && (
+              <li>
+                <a href="/">Admin</a>
+              </li>
+            )}
+            {ctx.isLoggedIn && (
+              <li>
+                <button onClick={props.onLogout}>Logout</button>
+              </li>
+            )}
+          </ul>
+        </nav>);
+      }}
+    </AuthContext.Consumer>
+  );
+};
+
+export default Navigation;
+
+```
+But then, we'd come across a compilation error
 
 ## Rendering
 

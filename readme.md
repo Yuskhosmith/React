@@ -24,6 +24,9 @@
   - [Effect / Side Effect](#effect--side-effect)
   - [Reducers / useReducer](#reducers--usereducer)
   - [useState() vs useReducer()🥷🏾](#usestate-vs-usereducer)
+  - [Context 🤯](#context)
+  - [useContext Hook 🦥](#usecontext-hook)
+-
 
 ## General Intro
 
@@ -1545,7 +1548,122 @@ const Navigation = (props) => {
 export default Navigation;
 
 ```
-But then, we'd come across a compilation error
+But then, we'd come across a compilation error. The reason for that is because we created `auth-context.js` and set the default values there, which means all that's left is to consume it, which also mean we don't need `<AuthContext.Provider>` if the default value wouldn't change.
+
+Now to make it work, we can also decide to add a value prop to `<AuthContext.Provider>` and set it the value in our `auth-context.js`:
+```jsx
+<AuthContext.Provider value={{
+  isLoggedIn: isLoggedIn,
+}}>
+...
+</AuthContext.Provider>
+```
+**Note**: Instead of hardcoding it as `isLoggedIn: isLoggedIn` I changed it to the the ReactState value `isLoggedIn`. And now we don't need to forward `isAuthenticated={isLoggedIn}` through the components as we can just access it using consumer.
+
+### useContext Hook
+The other way to cosume context is via the `useContext` Hook. To use the `useContext` hook we'd simply import it from `'react'` and then call it in the component function passing the Context we want to use to it, in our case `AuthContext`, and the storing it in a variable, using our navigation code from above, we'd now have:
+```jsx
+import React, { useContext } from 'react';
+
+import AuthContext from '../store/auth-context';
+import classes from './Navigation.module.css';
+
+const Navigation = (props) => {
+  const ctx = useContext(AuthContext);
+
+  return (
+    <nav className={classes.nav}>
+      <ul>
+        {ctx.isLoggedIn && (
+          <li>
+            <a href="/">Users</a>
+          </li>
+        )}
+        {ctx.isLoggedIn && (
+          <li>
+            <a href="/">Admin</a>
+          </li>
+        )}
+        {ctx.isLoggedIn && (
+          <li>
+            <button onClick={props.onLogout}>Logout</button>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+};
+
+export default Navigation;
+
+```
+This solution is a bit more elegant and easier to read compared to the Consumer and Provider methods.
+
+From the above solution, we're still passing data through components & props, we can also add that to the context.
+> App.js
+```jsx
+<AuthContext.Provider value={{
+  isLoggedIn: isLoggedIn,
+  onLogout: logoutHandler // function
+}}>
+...
+</AuthContext.Provider>
+```
+> Navigations.js
+```jsx
+import React, { useContext } from 'react';
+
+import AuthContext from '../store/auth-context';
+import classes from './Navigation.module.css';
+
+const Navigation = () => {
+  const ctx = useContext(AuthContext);
+
+  return (
+    <nav className={classes.nav}>
+      <ul>
+        {ctx.isLoggedIn && (
+          <li>
+            <a href="/">Users</a>
+          </li>
+        )}
+        {ctx.isLoggedIn && (
+          <li>
+            <a href="/">Admin</a>
+          </li>
+        )}
+        {ctx.isLoggedIn && (
+          <li>
+            <button onClick={ctx.onLogout}>Logout</button>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+};
+
+export default Navigation;
+
+```
+It's only appropriate to use Context when were passing data through more than 1 level component (i.e. passing data to a component that also forwards the data to another component and so on)
+
+To summarize
+- the context file contains the default values of the context,
+- the provider changes the values of the context file and we can add more,
+- the consumer takes the already set values and use them either by using consumer or use context,
+- we don't need the provider if the value of the context doesn't change,
+- for better IDE completion, we can add dummy values and fuction in our context file as default, so the autocomplete makes sense:
+```jsx
+import React from 'react';
+
+const AuthContext = React.createContext({
+  isLoggedIn: false,
+  onLogout: () => {}
+});
+
+export default AuthContext;
+```
+- to make it easier, we can also
 
 ## Rendering
 

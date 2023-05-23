@@ -15,7 +15,7 @@
 - [CSS Modules 💪🏾](#css-modules)
 - [Debugging React Apps 🧑🏾‍💻](#debugging-react-apps)
 - [Fragments, Portals & Refs](#fragments-portals--refs)
-  - [JSX Limitations](#jsx-limitations)
+  - [JSX Limitations 🛡️](#jsx-limitations)
   - [Fragments](#fragments)
   - [Portals](#portals)
   - [Refs](#refs)
@@ -26,7 +26,10 @@
   - [useState() vs useReducer()🥷🏾](#usestate-vs-usereducer)
   - [Context 🤯](#context)
   - [useContext Hook 🦥](#usecontext-hook)
--
+    - [Summary 🔩🐚](#to-summarize)
+  - [Context Limitations 🛡️](#context-limitations)
+- [Rules of Hooks 🦮](#rules-of-hooks)
+- [Forward Refs, useImperativeHandle](#forward-refs-useimperativehandle)
 
 ## General Intro
 
@@ -1647,23 +1650,235 @@ export default Navigation;
 ```
 It's only appropriate to use Context when were passing data through more than 1 level component (i.e. passing data to a component that also forwards the data to another component and so on)
 
-To summarize
+#### To summarize
 - the context file contains the default values of the context,
 - the provider changes the values of the context file and we can add more,
 - the consumer takes the already set values and use them either by using consumer or use context,
 - we don't need the provider if the value of the context doesn't change,
 - for better IDE completion, we can add dummy values and fuction in our context file as default, so the autocomplete makes sense:
+  ```jsx
+  import React from 'react';
+
+  const AuthContext = React.createContext({
+    isLoggedIn: false,
+    onLogout: () => {}
+  });
+
+  export default AuthContext;
+  ```
+- to make it easier, we can also reduce the logic in the `App` component and create a separate context management component for it. In our `auth-context.js` we can now have the whole logic in our `App.js`:
+  ```jsx
+  import React, { useState, useEffect } from 'react';
+
+  const AuthContext = React.createContext({
+    isLoggedIn: false,
+    onLogout: () => {},
+    onLogin: (email, password) => {}
+  });
+
+  export const AuthContextProvider = (props) => {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+      const storedInfo = localStorage.getItem('isLoggedIn')
+
+      if (storedInfo === '1') {
+        setIsLoggedIn(true);
+      }
+    }, [])
+
+    const logoutHandler = () => {
+      localStorage.removeItem('isLoggedIn');
+      setIsLoggedIn(false);
+    };
+
+    const loginHandler = (email, password) => {
+      localStorage.setItem('isLoggedIn', '1');
+      setIsLoggedIn(true);
+    };
+
+    return (
+      <AuthContext.Provider
+        value={{
+          isLoggedIn: isLoggedIn,
+          onLogout: logoutHandler,
+          onLogin: loginHandler,
+        }}
+      >
+        {props.children}
+      </AuthContext.Provider>
+    );
+  };
+
+  export default AuthContext;
+
+  ```
+  and in our `App.js` we'd have:
+  ```jsx
+  import React, { useContext } from 'react';
+
+  import Login from './components/Login/Login';
+  import Home from './components/Home/Home';
+  import MainHeader from './components/MainHeader/MainHeader';
+  import AuthContext from './components/store/auth-context';
+
+  function App() {
+    const ctx = useContext(AuthContext);
+
+    return (
+      <React.Fragment>
+        <MainHeader/>
+        <main>
+          {!ctx.isLoggedIn && <Login/>}
+          {ctx.isLoggedIn && <Home/>}
+        </main>
+      </React.Fragment>
+    );
+  }
+
+  export default App;
+
+  ```
+  and in `index.js` we'd be wrapping the app component in `AuthContextProvider`:
+  ```jsx
+  import React from 'react';
+  import ReactDOM from 'react-dom';
+
+  import './index.css';
+  import App from './App';
+  import { AuthContextProvider } from './components/store/auth-context';
+
+  ReactDOM.render(
+    <AuthContextProvider>
+      <App />
+    </AuthContextProvider>,
+    document.getElementById('root')
+  );
+
+  ```
+  So, whenever we need anything from authcontext we can just import it in that component and do something like this:
+  ```jsx
+  const authCtx = useContext(AuthContext);
+  authCtx.whateverProperty
+  ```
+  e.g. in `home.js` we have :
+  ```jsx
+  import React, { useContext } from 'react';
+
+  import Card from '../UI/Card/Card';
+  import classes from './Home.module.css';
+  import Button from '../UI/Button/Button';
+  import AuthContext from '../store/auth-context';
+
+  const Home = (props) => {
+    const authCtx = useContext(AuthContext);
+
+    return (
+      <Card className={classes.home}>
+        <h1>Welcome back!</h1>
+        <Button onClick={authCtx.onLogout}>Logout</Button>
+      </Card>
+    );
+  };
+
+  export default Home;
+  ```
+
+### Context Limitations
+- Context can be great for app-wide or component-wide state, but it's not a replacement for component configuration. Take for example a button component, the button should be reusable, but if we pass a context for the `onClick` event in that component, we have automatically set the action of that button to do one thing, and it's no longer reusable for another things, so we have to use props.
+- Context is not optimized for high frequency changes i.e. if you have state changes every seconds or multiple times a second, it's not optimized for that. (There's a better tool for this called *Redux*)
+- Context shouldn't be used to replace all component communications and props. Props are still important for component configurations and short prop chains might not need replacement.
+
+## Rules of Hooks
+There are two rules we have to know when it comes to working with react hooks and react hooks are those functions that start with `use` e.g. `useState`, `useEffect`, `useReducer` e.t.c.
+- **RULE 1:** Only call React Hooks in React Functions i.e React Component Functions and Custom Hooks (covered later!)
+- **RULE 2:** Only call React Hooks at the Top Level of the React Functions, don't call hooks in nested functions, don't call them in any block statement.
+- **Extra** - *Always add everything you refer to inside of `useEffect()` as a dependency, unless there's a reason not to do that. [Reference](#effect--side-effect)*
+
+## Forward Refs, useImperativeHandle
+Say we have input fields and we want to create a component that is reusable like this:
 ```jsx
 import React from 'react';
 
-const AuthContext = React.createContext({
-  isLoggedIn: false,
-  onLogout: () => {}
-});
+import classes from './Input.module.css';
 
-export default AuthContext;
+const Input = (props) => {
+  return (
+    <div
+      className={`${classes.control} ${
+        props.isValid === false ? classes.invalid : ''
+      }`}
+    >
+      <label htmlFor={props.id}>{props.label}</label>
+      <input
+        type={props.type}
+        id={props.id}
+        value={props.value}
+        onChange={props.onChange}
+        onBlur={props.onBlur}
+      />
+    </div>
+  );
+};
+
+export default Input;
 ```
-- to make it easier, we can also
+In our login component we would now have something like this:
+```jsx
+import React, { useState, useEffect, useReducer, useContext, useRef } from 'react';
+
+import Card from '../UI/Card/Card';
+import classes from './Login.module.css';
+import Button from '../UI/Button/Button';
+import Input from '../UI/Input/Input';
+
+
+// some reducer code
+
+const Login = (props) => {
+  // some more code logic
+  return (
+    <Card className={classes.login}>
+      <form onSubmit={submitHandler}>
+        <Input
+          isValid={emailIsValid}
+          id='email'
+          label='E-mail'
+          type='email'
+          value={emailState.value}
+          onChange={emailChangeHandler}
+          onBlur={validateEmailHandler}
+        />
+        <Input
+          isValid={passwordIsValid}
+          id='password'
+          label='Password'
+          type='password'
+          value={passwordState.value}
+          onChange={passwordChangeHandler}
+          onBlur={validatePasswordHandler}
+        />
+
+        <div className={classes.actions}>
+          <Button
+            type='submit'
+            className={classes.btn}
+            disabled={!formIsValid}
+          >
+            Login
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+};
+
+export default Login;
+```
+### useImperativeHandle
+This is a React Hook that allows us to interact with components imperatively, which means not by parsing some state to it that then changes something in the component but by calling a function inside a component. This is something we won't need to do often and we shouldn't do often, because it's not the typical react pattern we want but sometimes it's helpful.
+
+With the `Login` component above the button is only clickable when the form is valid 
 
 ## Rendering
 
@@ -1676,13 +1891,13 @@ When a change is made to the DOM, the change is made to the copy of the virtual 
 
 # Projects
 
-| Project                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Repo Link | Live Link |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- |
-| Monsters Rolodex        | This is my first project using ReactJS, It's basically a page that displays a bunch of cards and filters them while you search.                                                                                                                                                                                                                                                                                                                                                                | Link      | Link      |
-| Pure React              | This is my second encounter with ReactJS while learning and documenting this, although I have seen this concept before (used in Django to write react). This is basically REACT under the hood, without the whole packages and modules, you just import what you need from the cloud and write your app and stuff                                                                                                                                                                            | Link      | Link      |
-| React Complete Guide    | This is the first section of the tutorial from Zero to mastery(insert link), it basically covers the fundamentals of react, It is an expense tracker app, users input their expenses and they can filter by year and they can see how much each expense is compared to the maximum expense in a year via chart bar.                                                                                                                                                                          | Link      | Link      |
-| Styling React Component | In this project I learnt different ways to style a component so that there won't be a styling clash in the project, I learnt how to use styled-component (a node package) and CSS modules, I also learnt how to style dynamically if certain logic applies using the ternary operator and even if-statements in different scenarios, You can read about them [here](#styled-components), [here](#css-modules), [here](#dynamic-styling) and [here](#rendering-conditional-contents) respectively | Link      | Link      |
-| Add User App            | This is my first 'no-help' react project, where a user can input their name and age, if they input an incorrect age like a negative number or they submit an empty form or they leave an input field blank while submitting, they get their respective error messages in a dialogue box. If they successfully add their name and age, it will be displayed in the bottom section of the app.                                                                                                   | Link      | Link      |
+| Project|Description| Repo Link | Live Link |
+| -----| --------- | --------- | --------- |
+| Monsters Rolodex | This is my first project using ReactJS, It's basically a page that displays a bunch of cards and filters them while you search. | Link | Link |
+| Pure React | This is my second encounter with ReactJS while learning and documenting this, although I have seen this concept before (used in Django to write react). This is basically REACT under the hood, without the whole packages and modules, you just import what you need from the cloud and write your app and stuff | Link | Link |
+| React Complete Guide    | This is the first section of the tutorial from Zero to mastery(insert link), it basically covers the fundamentals of react, It is an expense tracker app, users input their expenses and they can filter by year and they can see how much each expense is compared to the maximum expense in a year via chart bar. | Link | Link |
+| Styling React Component | In this project I learnt different ways to style a component so that there won't be a styling clash in the project, I learnt how to use styled-component (a node package) and CSS modules, I also learnt how to style dynamically if certain logic applies using the ternary operator and even if-statements in different scenarios, You can read about them [here](#styled-components), [here](#css-modules), [here](#dynamic-styling) and [here](#rendering-conditional-contents) respectively | Link | Link |
+| Add User App | This is my first 'no-help' react project, where a user can input their name and age, if they input an incorrect age like a negative number or they submit an empty form or they leave an input field blank while submitting, they get their respective error messages in a dialogue box. If they successfully add their name and age, it will be displayed in the bottom section of the app. | Link | Link |
 | Effects, Reducers & Context | This 
 
 

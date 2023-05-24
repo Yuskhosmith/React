@@ -1880,6 +1880,8 @@ This is a React Hook that allows us to interact with components imperatively, wh
 
 With the `Login` component above the button is only clickable when the form is valid 
 
+
+
 ## Rendering
 
 How does react render?

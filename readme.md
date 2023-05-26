@@ -30,6 +30,8 @@
   - [Context Limitations 🛡️](#context-limitations)
 - [Rules of Hooks 🦮](#rules-of-hooks)
 - [Forward Refs, useImperativeHandle](#forward-refs-useimperativehandle)
+  - [useImeprativeHandle Hook](#useimperativehandle)
+
 
 ## General Intro
 
@@ -1878,10 +1880,204 @@ export default Login;
 ### useImperativeHandle
 This is a React Hook that allows us to interact with components imperatively, which means not by parsing some state to it that then changes something in the component but by calling a function inside a component. This is something we won't need to do often and we shouldn't do often, because it's not the typical react pattern we want but sometimes it's helpful.
 
-With the `Login` component above the button is only clickable when the form is valid 
+With the `Login` component above the button is only clickable when the form is valid, now we can remove `disabled={!formIsValid}` to make it clickable at all times. And in the submit handler we'd check if the form is valid then log the user in, else we'd focus on the first input that's invalid. In our `Input` component we can use `useRef` to make sure there's a reference to each input field:
+```jsx
+import React, { useRef } from 'react';
+
+import classes from './Input.module.css';
+
+const Input = (props) => {
+  const inputRef = useRef();
+  
+  const activate = () => {
+    inputRef.current.focus();
+  };
+
+  return (
+    <div
+      className={`${classes.control} ${
+        props.isValid === false ? classes.invalid : ''
+      }`}
+    >
+      <label htmlFor={props.id}>{props.label}</label>
+      <input
+        ref = {inputRef}
+        type={props.type}
+        id={props.id}
+        value={props.value}
+        onChange={props.onChange}
+        onBlur={props.onBlur}
+      />
+    </div>
+  );
+};
+
+export default Input;
+
+```
+
+In our To `Login` component we'd use `useRef` to point specifically to the email and password inputs, and also add it as props in our Input component:
+```jsx
+import React, { useState, useEffect, useReducer, useContext, useRef } from 'react';
+
+import Card from '../UI/Card/Card';
+import classes from './Login.module.css';
+import Button from '../UI/Button/Button';
+import AuthContext from '../store/auth-context';
+import Input from '../UI/Input/Input';
+
+const emailReducer = (state, action) => {
+  // ...
+};
+
+const passwordReducer = (state, action) => {
+  // ...
+};
+
+const Login = (props) => {
+  // ...
+
+  const authCtx = useContext(AuthContext);
+
+  const emailInputRef = useRef();
+  const passwordInputRef = useRef();
+
+  // ...
+  //somemore code
+  // ...
+
+  const submitHandler = (event) => {
+    event.preventDefault();
+    if (formIsValid) {
+      authCtx.onLogin(emailState.value, passwordState.value);
+    } else if (!emailIsValid) {
+      emailInputRef.current.activate();
+    } else {
+      passwordInputRef.current.activate();
+    }
+    
+  };
+
+  return (
+    <Card className={classes.login}>
+      <form onSubmit={submitHandler}>
+        <Input
+          ref = {emailInputRef}
+          isValid={emailIsValid}
+          id='email'
+          label='E-mail'
+          type='email'
+          value={emailState.value}
+          onChange={emailChangeHandler}
+          onBlur={validateEmailHandler}
+        />
+        <Input
+          ref = {passwordInputRef}
+          isValid={passwordIsValid}
+          id='password'
+          label='Password'
+          type='password'
+          value={passwordState.value}
+          onChange={passwordChangeHandler}
+          onBlur={validatePasswordHandler}
+        />
+
+        <div className={classes.actions}>
+          <Button
+            type='submit'
+            className={classes.btn}
+            // disabled={!formIsValid}
+          >
+            Login
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+};
+
+export default Login;
+
+```
+
+The following code won't work beacuse function components can't be given refs:
+```jsx
+// ...
+  const submitHandler = (event) => {
+    event.preventDefault();
+    if (formIsValid) {
+      authCtx.onLogin(emailState.value, passwordState.value);
+    } else if (!emailIsValid) {
+      // problem 1
+      emailInputRef.current.activate();
+    } else {
+      // problem 2
+      passwordInputRef.current.activate();
+    }
+  }
+// ...
+```
+To fix that we'd use the `useImperativeHandle` Hook in the `Input` component:
+```jsx
+import React, { useRef, useImperativeHandle } from 'react';
+
+import classes from './Input.module.css';
+
+// component takes a second argument, ref, to accept it, we'd wrap it in the React.forwardRef
+const Input = React.forwardRef((props, ref) => {
+  const inputRef = useRef();
+  
+  const activate = () => {
+    inputRef.current.focus();
+  };
+
+  useImperativeHandle(ref, ()=> {
+    return{
+      // new pointer outside the component would now be focus
+      focus: activate
+    }
+  })
+  return (
+    <div
+      className={`${classes.control} ${
+        props.isValid === false ? classes.invalid : ''
+      }`}
+    >
+      <label htmlFor={props.id}>{props.label}</label>
+      <input
+        ref = {inputRef}
+        type={props.type}
+        id={props.id}
+        value={props.value}
+        onChange={props.onChange}
+        onBlur={props.onBlur}
+      />
+    </div>
+  );
+});
+
+export default Input;
+```
+And now in our `login` component we'd now have:
+```jsx
+//...
+  const submitHandler = (event) => {
+    event.preventDefault();
+    if (formIsValid) {
+      authCtx.onLogin(emailState.value, passwordState.value);
+    } else if (!emailIsValid) {
+      emailInputRef.current.focus();
+    } else {
+      passwordInputRef.current.focus();
+    }
+  }
+//...
+```
+*Remember, this is something we won't need to do often and we shouldn't do often, because it's not the typical react pattern we want but sometimes it's helpful*
 
 
 
+##
 ## Rendering
 
 How does react render?

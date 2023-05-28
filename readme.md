@@ -32,6 +32,8 @@
 - [Forward Refs, useImperativeHandle](#forward-refs-useimperativehandle)
   - [useImeprativeHandle Hook](#useimperativehandle)
 
+- [Extras](#extras)
+
 
 ## General Intro
 
@@ -2078,6 +2080,47 @@ And now in our `login` component we'd now have:
 
 
 ##
+
+## Extras
+If we have a prop that's an object, we can unpack it as attributes of an element using the spread operator, e.g. say we have Input component and we add an object as part of it's props:
+```jsx
+import Input from '../../UI/Input';
+import classes from './MealItemForm.module.css';
+
+const MealItemForm = (props) => {
+  return (
+    <form className={classes.form}>
+      <Input
+        label='Amount'
+        input={{
+          id: 'amount',
+          type: 'amount',
+          min: '1',
+          max: '5',
+          step: '1',
+          defaultValue: '1',
+        }}
+      />
+      <button>+ Add</button>
+    </form>
+  );
+};
+
+export default MealItemForm;
+
+```
+> Input.component.jsx
+```jsx
+const Input = (props) => {
+  return <div>
+    <label htmlFor={props.input.id}>{props.label}</label>
+    <input {...props.input}/>
+  </div>
+}
+export default Input
+```
+So, instead of saying `id = props.input.id, type = props.input.type...` we could just do the above to unpack the object prop.
+
 ## Rendering
 
 How does react render?

@@ -19,5 +19,4 @@
 [submodule "food-ordering-app"] 
   path = food-ordering-app
   url = https://github.com/Yuskhosmith/food-ordering-app.git
-
 	branch = heads/master

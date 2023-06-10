@@ -31,8 +31,8 @@
 - [Rules of Hooks 🦮](#rules-of-hooks)
 - [Forward Refs, useImperativeHandle](#forward-refs-useimperativehandle)
   - [useImeprativeHandle Hook](#useimperativehandle)
-
 - [Extras](#extras)
+- [React - Behind the Scenes🚧]()
 
 
 ## General Intro
@@ -254,7 +254,7 @@ We can just continue using the single state as it is preferred. But keep it in m
 
 ### Unidirectional data flow (from top to bottom)
 
-React goes from the App component down to the last div component. But what if we want to pass data from a component below to a component above, so that can use the data in the component above? We can do that by passing the function from the component above and executing it in the component below. This is known as **'Lifting State Up'**.
+React goes from the App component down to the last div component. But what if we want to pass data from a component below to a component above, so that we can use the data in the component above? We can do that by passing the function from the component above and executing it in the component below. This is known as **'Lifting State Up'**.
 
 ## Rendering Conditional Contents
 
@@ -1451,7 +1451,7 @@ We are passing the `isAuthenticated` prop to another component which then pass i
 
 ```jsx
 import React from 'react';
-import AuthContext from './store/auth;
+import AuthContext from './store/auth';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -2079,7 +2079,6 @@ And now in our `login` component we'd now have:
 
 
 
-##
 
 ## Extras
 If we have a prop that's an object, we can unpack it as attributes of an element using the spread operator, e.g. say we have Input component and we add an object as part of it's props:
@@ -2121,14 +2120,19 @@ export default Input
 ```
 So, instead of saying `id = props.input.id, type = props.input.type...` we could just do the above to unpack the object prop.
 
-## Rendering
+## React - Behind the Scenes🚧
+- React is a JavaScript Library for building user Interface.
+- React is all about components (and states, props & context).
+- ReactDOM is your interface to the web, REACT.JS does not know the web, React only knows how to work with components but it doesn't care what those components contain, it's ReactDOM that cares, because at the end of the day it's incharge of bringing the html elements to the screen. 
 
-How does react render?
+### How does it work
+React creates a *virtual dom* which determines how the component tree looks like and what it should look like, for example after a state update. ReactDOM receives the differences (i.e. required changes) and then manipuates the real DOM.
 
-When you start your react app, we have the Real DOM...
-React creates a Virtual DOM for changes purposes, and then a copy of that virtual DOM.
+When a state, prop, or context of a component changes, the component is re-executed or re-evaluated by react. Re-evaluating a component is not the same as Re-rendering the DOM
 
-When a change is made to the DOM, the change is made to the copy of the virtual DOM, the Real DOM doesn't change until the virtual DOM and its copy are compared without issues.
+After the re-evaluation of a component the real DOM is updated by comparing the virtual DOM and the real DOM (**Virtual DOM Diffing: finding out the difference between two snapshots, i.e the last snapshot and the new/updated snapshot**), this is more memory efficient than re-rendering every component after any change.
+
+> TL:DR - When a change is made to the DOM, the change is made to the copy of the virtual DOM, the Real DOM doesn't change until 'the virtual DOM and its copy' are compared without issues. 
 
 # Projects
 
